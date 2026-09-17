@@ -1,0 +1,79 @@
+name: Build BongoCat (full, Cubism)
+
+# Build the complete BongoCat binary with Live2D rendering on GitHub-hosted
+# Windows runners. The windows-2022 image ships Visual Studio 2022 (MSVC),
+# which is what the proprietary Cubism Core library requires, so no local
+# Visual Studio install is needed.
+#
+# Required repository secrets (Settings -> Secrets and variables -> Actions):
+#   CUBISM_SDK_ARCHIVE_URL      URL the runner can download (e.g. a private
+#                               repo release asset + token, or any file host).
+#                               Do NOT redistribute the SDK publicly.
+#   CUBISM_SDK_ARCHIVE_SHA256   SHA-256 of that zip.
+#   CUBISM_GLEW_ARCHIVE_URL     GLEW 2.2.0 zip URL (may reuse the public default
+#                               in .github/scripts/restore-cubism-sdk.ps1).
+#   CUBISM_GLEW_ARCHIVE_SHA256  SHA-256 of the GLEW zip.
+#
+# Trigger: push to the branch below, or run manually from the Actions tab.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-cubism]
+
+permissions:
+  contents: read
+
+env:
+  CUBISM_SDK_ARCHIVE_URL: ${{ secrets.CUBISM_SDK_ARCHIVE_URL }}
+  CUBISM_SDK_ARCHIVE_SHA256: ${{ secrets.CUBISM_SDK_ARCHIVE_SHA256 }}
+  CUBISM_GLEW_ARCHIVE_URL: ${{ secrets.CUBISM_GLEW_ARCHIVE_URL }}
+  CUBISM_GLEW_ARCHIVE_SHA256: ${{ secrets.CUBISM_GLEW_ARCHIVE_SHA256 }}
+
+jobs:
+  build-windows:
+    name: build / windows-x64 (Cubism)
+    runs-on: windows-2022
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v5
+
+      - name: Restore licensed Cubism SDK
+        shell: pwsh
+        run: ./.github/scripts/restore-cubism-sdk.ps1
+
+      - name: Build Windows release (RequireCubism)
+        shell: pwsh
+        run: |
+          & ./scripts/build-windows.ps1 `
+            -BuildDir build `
+            -Configuration Release `
+            -Architecture x64 `
+            -Jobs 2 `
+            -RequireCubism `
+            -Target ALL_BUILD
+
+      - name: Install software OpenGL for tests
+        uses: ssciwr/setup-mesa-dist-win@2dfeaebfa514f74c2b8cd8d27108c31486d33e72 # v3
+        with:
+          version: '23.3.3'
+          deployment-choice: '1'
+
+      - name: Test Windows release
+        shell: pwsh
+        run: >-
+          & ./.github/scripts/test-windows.ps1
+          ctest --test-dir build -C Release --output-on-failure
+
+      - name: Package portable release
+        shell: pwsh
+        run: |
+          cmake --build build --config Release --target package-portable
+
+      - name: Upload portable artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: BongoCat-windows-x64-full
+          path: build/dist/*
+          if-no-files-found: error
+          retention-days: 30

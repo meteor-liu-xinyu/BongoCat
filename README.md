@@ -20,6 +20,11 @@
   </h1>
 </div>
 
+> [!NOTE]
+> **派生（Fork）说明 · 本仓库为非官方个人魔改版**
+> - 上游源仓库：[vladelaina/BongoCat](https://github.com/vladelaina/BongoCat)
+> - 本仓库在原版基础上做了个人化修改（主要为构建流程调整），**仅供个人学习与研究使用，不用于分发、不提供官方支持**。
+> - 源码与原生运行时沿用上游 **AGPL-3.0** 许可；Live2D Cubism SDK 的使用须遵守其官方授权条款。
 
 <!-- Project Description + Rocket Icon -->
 <p align="center"> 
