@@ -22,6 +22,10 @@ jobs:
   publishing-policy:
     name: security / publishing-policy
     runs-on: ubuntu-latest
+    # This publishing-guard policy only applies to the upstream repository.
+    # Personal forks intentionally build and upload artifacts from their own
+    # repository, so skip the self-test there.
+    if: github.repository == 'vladelaina/BongoCat'
     steps:
       - name: Checkout source
         uses: actions/checkout@v5
